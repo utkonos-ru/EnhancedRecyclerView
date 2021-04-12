@@ -60,8 +60,8 @@ afterEvaluate {
     publishing {
         publications {
             library(MavenPublication) {
-                setGroupId 'ru.utkonos'
-                setArtifactId 'enhanced-recycler-view'
+                setGroupId 'com.github.utkonos-online-shop'
+                setArtifactId 'EnhancedRecyclerView'
                 version 'LOCAL'
 
                 artifact bundleReleaseAar

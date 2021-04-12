@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.min
 
-class EnhancedRecyclerView @JvmOverloads constructor(
+open class EnhancedRecyclerView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyle: Int = 0
@@ -41,9 +41,9 @@ class EnhancedRecyclerView @JvmOverloads constructor(
 
     private val canRestoreState get() = !isBindingAsNested && adapter != null
 
-    private var itemAnimatorBackup: ItemAnimator? = null
+    private var itemAnimatorBackup: RecyclerView.ItemAnimator? = null
 
-    private var items: List<Any?>? = null
+    private var list: List<Any?>? = null
         set(value) {
             if (field === value) return
             field = value
@@ -59,39 +59,41 @@ class EnhancedRecyclerView @JvmOverloads constructor(
 
     private var onDataChangedCallback: OnDataChangedCallback? = null
 
+    var getNextPageLoadingPosition
+        get() = paginationScrollListener?.getNextPageLoadingPosition
+        set(value) {
+            paginationScrollListener?.getNextPageLoadingPosition = value
+        }
     var getNextPage: GetNextPage? = null
         set(value) {
             if (field === value) return
             field = value
             updatePaginationScrollListener()
         }
-
     private var paginationScrollListener: PaginationScrollListener? = null
+    var lastPageSize: Int? = null
+        private set
 
-    private var pageSize: Int? = null
-
-    var onItemBound: OnItemLifecycleEvent? = null
-
-    var onItemRecycled: OnItemLifecycleEvent? = null
-
-    var onItemIsFullyVisible: OnItemLifecycleEvent? = null
+    private var onItemCreated: OnViewDataBindingHolderUpdated? = null
+    private var onItemBound: OnViewDataBindingHolderUpdated? = null
+    private var onItemRecycled: OnViewDataBindingHolderUpdated? = null
+    var onItemIsFullyVisible: OnViewHolderUpdated? = null
         set(value) {
             if (field === value) return
             field = value
             updateItemIsFullyVisibleListener()
         }
-
     private var itemIsFullyVisibleListener: ItemIsFullyVisibleListener? = null
 
-    private val coroutineScope = ClearableCoroutineScope(Dispatchers.IO)
-
-    private val disposables = CompositeDisposable()
+    private val sharedRecycledViewPool = RecycledViewPool()
 
     init {
-        itemAnimator = object : DefaultItemAnimator() {
-            override fun canReuseUpdatedViewHolder(viewHolder: RecyclerView.ViewHolder) = true
-        }
+        setRecycledViewPool(sharedRecycledViewPool)
+        itemAnimator = ItemAnimator()
     }
+
+    final override fun setRecycledViewPool(pool: RecycledViewPool?) =
+        super.setRecycledViewPool(pool)
 
     override fun onSaveInstanceState() = SavedState(
         super.onSaveInstanceState(),
@@ -150,15 +152,15 @@ class EnhancedRecyclerView @JvmOverloads constructor(
             .firstOrNull { it.unstableItemId == oldViewHolder.unstableItemId && it !== oldViewHolder }
 
     private fun updateAdapter() {
-        val items = items
+        val list = list
         val getItemLayout = getItemLayout
-        if (items == null || getItemLayout == null) {
+        if (list == null || getItemLayout == null) {
             adapter = null
             return
         }
         if (adapter == null) adapter = DataBindingAdapter(getItemLayout)
         (adapter as? DataBindingAdapter)?.let {
-            if (it.currentList !== items) it.submitList(items)
+            if (it.currentList !== list) it.submitList(list)
             if (it.getItemLayout !== getItemLayout) {
                 adapter = null
                 it.getItemLayout = getItemLayout
@@ -178,7 +180,10 @@ class EnhancedRecyclerView @JvmOverloads constructor(
     }
 
     private fun updatePaginationScrollListener() {
-        paginationScrollListener = getNextPage?.let { PaginationScrollListener(this) }
+        paginationScrollListener = if (getNextPage != null)
+            PaginationScrollListener(this)
+        else
+            null.also { paginationScrollListener?.onRemoved() }
     }
 
     private fun updateItemIsFullyVisibleListener() {
@@ -186,14 +191,12 @@ class EnhancedRecyclerView @JvmOverloads constructor(
             ?: null.also { itemIsFullyVisibleListener?.onRemoved() }
     }
 
-    override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
-        coroutineScope.clear()
-        disposables.clear()
-    }
-
     interface GetItemLayout {
         operator fun invoke(itemPosition: Int, itemData: Any?): Int?
+    }
+
+    interface GetNextPageLoadingPosition {
+        operator fun invoke(): Int?
     }
 
     interface GetNextPage
@@ -203,7 +206,7 @@ class EnhancedRecyclerView @JvmOverloads constructor(
     }
 
     interface GetNextPageOnCallback : GetNextPage {
-        operator fun invoke(callback: (List<Any?>?) -> Unit)
+        operator fun invoke(onSuccess: (List<Any?>?) -> Unit, onError: () -> Unit)
     }
 
     interface SuspendGetNextPage : GetNextPage {
@@ -214,13 +217,28 @@ class EnhancedRecyclerView @JvmOverloads constructor(
         operator fun invoke(): Single<List<Any?>>
     }
 
-    interface OnItemLifecycleEvent {
+    interface OnViewHolderUpdated {
         operator fun invoke(viewHolder: RecyclerView.ViewHolder)
+    }
+
+    interface OnViewDataBindingHolderUpdated {
+        operator fun invoke(viewHolder: ViewDataBindingHolder)
+    }
+
+    open class ItemAnimator : DefaultItemAnimator() {
+
+        override fun canReuseUpdatedViewHolder(viewHolder: RecyclerView.ViewHolder) =
+            if ((viewHolder as? ViewHolder)?.nestedRecyclerView != null)
+                true
+            else
+                super.canReuseUpdatedViewHolder(viewHolder)
     }
 
     abstract class Adapter<T, VH : ViewHolder> : ListAdapter<T, VH>(DiffUtilCallback()) {
 
-        private lateinit var parent: EnhancedRecyclerView
+        lateinit var parent: EnhancedRecyclerView
+
+        var actualList: List<T>? = null
 
         private var itemViewStates = ArrayList<ItemViewState>()
 
@@ -236,8 +254,10 @@ class EnhancedRecyclerView @JvmOverloads constructor(
         @CallSuper
         override fun submitList(list: List<T>?, commitCallback: Runnable?) {
             super.submitList(list) {
+                actualList = list
                 parent.apply {
                     updateOnDataChangedCallback(list)
+                    lastPageSize = list?.size
                     if (isBindingAsNested) {
                         isBindingAsNested = false
                         afterBindingAsNested()
@@ -253,15 +273,11 @@ class EnhancedRecyclerView @JvmOverloads constructor(
         override fun onBindViewHolder(holder: VH, position: Int) {
             holder.unstableItemId = getUnstableItemId(position)
             holder.nestedRecyclerView?.apply {
+                setRecycledViewPool(this@Adapter.parent.sharedRecycledViewPool)
                 beforeBindingAsNested()
                 isBindingAsNested = true
             }
             restoreItemViewState(holder)
-            parent.onItemBound?.invoke(holder)
-        }
-
-        override fun onViewRecycled(holder: VH) {
-            parent.onItemRecycled?.invoke(holder)
         }
 
         @CallSuper
@@ -338,7 +354,7 @@ class EnhancedRecyclerView @JvmOverloads constructor(
 
         @SuppressLint("DiffUtilEquals")
         override fun areContentsTheSame(oldItem: T, newItem: T): Boolean =
-            oldItem == newItem
+            (oldItem as? Identifiable)?.contentEquals(newItem) ?: oldItem == newItem
     }
 
     private class DataBindingAdapter(var getItemLayout: GetItemLayout) :
@@ -349,6 +365,9 @@ class EnhancedRecyclerView @JvmOverloads constructor(
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
             (ViewDataBindingHolder.create(parent, viewType) ?: EmptyViewHolder(parent.context))
+                .also {
+                    this.parent.onItemCreated?.invoke(it as? ViewDataBindingHolder ?: return@also)
+                }
 
         fun ViewDataBindingHolder.Companion.create(
             parent: ViewGroup,
@@ -368,15 +387,19 @@ class EnhancedRecyclerView @JvmOverloads constructor(
             super.onBindViewHolder(holder, position)
             if (holder !is ViewDataBindingHolder) return
             holder.bind(position, getItem(position))
+            parent.onItemBound?.invoke(holder)
+        }
+
+        override fun onViewRecycled(holder: ViewHolder) {
+            parent.onItemRecycled?.invoke(holder as? ViewDataBindingHolder ?: return)
         }
     }
 
     class EmptyViewHolder(context: Context) :
         ViewHolder(View(context).apply { isGone = true })
 
-    class ViewDataBindingHolder(private val itemBinding: ViewDataBinding) :
+    class ViewDataBindingHolder internal constructor(val itemBinding: ViewDataBinding) :
         ViewHolder(itemBinding.root) {
-
 
         fun bind(position: Int, data: Any?) {
             itemBinding.setVariable("itemPosition", position)
@@ -439,8 +462,7 @@ class EnhancedRecyclerView @JvmOverloads constructor(
         }
     }
 
-    private class PaginationScrollListener(private val parent: EnhancedRecyclerView) :
-        RecyclerView.OnScrollListener() {
+    private class PaginationScrollListener(private val parent: EnhancedRecyclerView) {
 
         @Volatile
         private var pageIsLoading = false
@@ -448,48 +470,92 @@ class EnhancedRecyclerView @JvmOverloads constructor(
         @Volatile
         private var allPagesAreLoaded = false
 
-        override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-            if (allPagesAreLoaded || pageIsLoading) return
-            val lastVisibleItemPosition =
-                ((recyclerView.layoutManager as? LinearLayoutManager) ?: return)
-                    .findLastVisibleItemPosition()
-            val loadPosition =
-                (recyclerView.adapter ?: return).itemCount - 1 - (parent.pageSize ?: return) / 2
-            if (lastVisibleItemPosition >= loadPosition) loadPage()
+        var getNextPageLoadingPosition: GetNextPageLoadingPosition? = null
+
+        private val coroutineScope = ClearableCoroutineScope(Dispatchers.IO)
+
+        private val disposables = CompositeDisposable()
+
+        private val onScrollListener = object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                if (allPagesAreLoaded || pageIsLoading) return
+                val lastVisibleItemPosition =
+                    ((recyclerView.layoutManager as? LinearLayoutManager) ?: return)
+                        .findLastVisibleItemPosition()
+                val loadPosition = getNextPageLoadingPosition?.let { it() ?: return }
+                    ?: getDefaultLoadingPosition() ?: return
+                if (lastVisibleItemPosition >= loadPosition) loadPage()
+            }
+        }
+
+        private val onAttachStateChangeListener = object : OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View?) = Unit
+
+            override fun onViewDetachedFromWindow(v: View?) {
+                coroutineScope.clear()
+                disposables.clear()
+            }
+        }
+
+        init {
+            parent.addOnScrollListener(onScrollListener)
+            parent.addOnAttachStateChangeListener(onAttachStateChangeListener)
+        }
+
+        private fun getDefaultLoadingPosition(): Int? {
+            return (parent.adapter ?: return null).itemCount -
+                    1 -
+                    (parent.lastPageSize ?: return null) / 2
         }
 
         private fun loadPage() {
             pageIsLoading = true
-            when (val getMoreData = parent.getNextPage) {
-                is SynchronousGetNextPage -> onPageLoaded(getMoreData())
-                is GetNextPageOnCallback -> getMoreData { onPageLoaded(it) }
-                is SuspendGetNextPage -> parent.coroutineScope.launch {
+            when (val getNextPage = parent.getNextPage) {
+                is SynchronousGetNextPage -> try {
+                    onPageLoaded(getNextPage())
+                } catch (e: Exception) {
+                } finally {
+                    pageIsLoading = false
+                }
+                is GetNextPageOnCallback -> getNextPage(
+                    onSuccess = { onPageLoaded(it) },
+                    onError = { pageIsLoading = false }
+                )
+                is SuspendGetNextPage -> coroutineScope.launch {
                     try {
-                        val page = getMoreData()
+                        val page = getNextPage()
                         withContext(Dispatchers.Main) { onPageLoaded(page) }
                     } catch (e: Exception) {
+                    } finally {
+                        pageIsLoading = false
                     }
                 }
-                is GetNextPageSingle -> parent.disposables.add(
-                    getMoreData().subscribeOn(Schedulers.io())
+                is GetNextPageSingle -> disposables.add(
+                    getNextPage().subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
+                        .doFinally { pageIsLoading = false }
                         .subscribe({ onPageLoaded(it) }) {}
                 )
             }
         }
 
         private fun onPageLoaded(page: List<Any?>?) {
-            val data = ((parent.adapter as? ListAdapter<*, *>)?.currentList as? MutableList<Any?>)
-                ?: return
+            pageIsLoading = false
+            val data =
+                ((parent.adapter as? Adapter<*, *>)?.actualList as? MutableList<Any?>) ?: return
             if (!page.isNullOrEmpty()) {
                 data.addAll(page)
-                parent.pageSize = page.size
+                parent.lastPageSize = page.size
                 if (data !is ObservableArrayList)
                     parent.adapter?.notifyItemRangeInserted(data.size - page.size, page.size)
             } else {
                 allPagesAreLoaded = true
             }
-            pageIsLoading = false
+        }
+
+        fun onRemoved() {
+            parent.removeOnScrollListener(onScrollListener)
+            parent.removeOnAttachStateChangeListener(onAttachStateChangeListener)
         }
     }
 
@@ -546,40 +612,53 @@ class EnhancedRecyclerView @JvmOverloads constructor(
         }
 
         @JvmStatic
-        @BindingAdapter("items")
-        fun setItems(view: EnhancedRecyclerView, value: List<*>?) {
-            view.items = value
+        @BindingAdapter("list")
+        fun setList(view: EnhancedRecyclerView, value: List<*>?) {
+            view.list = value
         }
 
         @JvmStatic
         @BindingAdapter("synchronousGetNextPage")
         fun setSynchronousGetNextPage(view: EnhancedRecyclerView, value: SynchronousGetNextPage?) {
-            view.getNextPage = value
+            value?.let { view.getNextPage = it }
+                ?: (view.getNextPage as? SynchronousGetNextPage)?.also { view.getNextPage = null }
         }
 
         @JvmStatic
         @BindingAdapter("getNextPageOnCallback")
         fun setGetNextPageOnCallback(view: EnhancedRecyclerView, value: GetNextPageOnCallback?) {
-            view.getNextPage = value
+            value?.let { view.getNextPage = it }
+                ?: (view.getNextPage as? GetNextPageOnCallback)?.also { view.getNextPage = null }
         }
 
         @JvmStatic
         @BindingAdapter("suspendGetNextPage")
         fun setSuspendGetNextPage(view: EnhancedRecyclerView, value: SuspendGetNextPage?) {
-            view.getNextPage = value
+            value?.let { view.getNextPage = it }
+                ?: (view.getNextPage as? SuspendGetNextPage)?.also { view.getNextPage = null }
         }
 
         @JvmStatic
         @BindingAdapter("getNextPageSingle")
         fun setGetNextPageSingle(view: EnhancedRecyclerView, value: GetNextPageSingle?) {
-            view.getNextPage = value
+            value?.let { view.getNextPage = it }
+                ?: (view.getNextPage as? GetNextPageSingle)?.also { view.getNextPage = null }
+        }
+
+        @JvmStatic
+        @BindingAdapter("onItemCreated")
+        fun setOnItemCreated(
+            view: EnhancedRecyclerView,
+            value: OnViewDataBindingHolderUpdated
+        ) {
+            view.onItemCreated = value
         }
 
         @JvmStatic
         @BindingAdapter("onItemBound")
         fun setOnItemBound(
             view: EnhancedRecyclerView,
-            value: OnItemLifecycleEvent
+            value: OnViewDataBindingHolderUpdated
         ) {
             view.onItemBound = value
         }
@@ -588,7 +667,7 @@ class EnhancedRecyclerView @JvmOverloads constructor(
         @BindingAdapter("onItemRecycled")
         fun setOnItemRecycled(
             view: EnhancedRecyclerView,
-            value: OnItemLifecycleEvent
+            value: OnViewDataBindingHolderUpdated
         ) {
             view.onItemRecycled = value
         }
@@ -597,7 +676,7 @@ class EnhancedRecyclerView @JvmOverloads constructor(
         @BindingAdapter("onItemIsFullyVisible")
         fun setOnItemIsFullyVisible(
             view: EnhancedRecyclerView,
-            value: OnItemLifecycleEvent
+            value: OnViewHolderUpdated
         ) {
             view.onItemIsFullyVisible = value
         }

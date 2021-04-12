@@ -86,11 +86,11 @@ recycler_view.getNextPage = myGetNextPage
 Your interface will be automatically called when you scroll to the middle of the last page.
 
 ### DataBinding support
-EnhancedRecyclerView has a unique and most modern way of initialization, without writing any code at all. That is, you do not need to create an adapter and call methods on the RecyclerView. This is achieved through [Android DataBinding](). All you have to do is set two attributes in xml: `items` and `getItemLayout`:
+EnhancedRecyclerView has a unique and most modern way of initialization, without writing any code at all. That is, you do not need to create an adapter and call methods on the RecyclerView. This is achieved through [Android DataBinding](). All you have to do is set two attributes in xml: `list` and `getItemLayout`:
 ```xml
 <ru.utkonos.enhanced_recycler_vew.EnhancedRecyclerView
     getItemLayout="@{(itemPosition, itemData) -> @layout/layout_my_item}"
-    items="@{myDataList}"
+    list="@{myDataList}"
     android:layout_width="match_parent"
     android:layout_height="wrap_content" />
 ```
@@ -108,7 +108,7 @@ EnhancedRecyclerView has a unique and most modern way of initialization, without
 </layout
 ```
 How it works:
-1. You set your data list to the `items` attribute
+1. You set your data list to the `list` attribute
 1. You return your item's layout resource in `getItemLayout` function, based on `itemPosition` and your data list item under that position (`itemData`)
 2. The adapter is generated automatically based on the bound data
 3. In your item layout xml, you create two variables (each is optional): `itemPosition` and `itemData`. And in `onBindViewHolder` of the generated Adapter, the corresponding values will be set to these variables
