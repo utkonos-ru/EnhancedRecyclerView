@@ -354,7 +354,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
         @SuppressLint("DiffUtilEquals")
         override fun areContentsTheSame(oldItem: T, newItem: T): Boolean =
-            (oldItem as? Identifiable)?.contentEquals(newItem) ?: oldItem == newItem
+            (oldItem as? Identifiable)?.contentEquals(newItem) ?: (oldItem == newItem)
     }
 
     private class DataBindingAdapter(var getItemLayout: GetItemLayout) :

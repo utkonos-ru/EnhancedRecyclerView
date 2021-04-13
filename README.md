@@ -15,7 +15,7 @@ allprojects {
 In your app/build.gradle:
 ```gradle
 dependencies {
-   implementation 'com.github.utkonos-online-shop.enhanced-recycler-view:1.0.0'
+   implementation 'com.github.utkonos-online-shop.EnhancedRecyclerView:1.0.0'
 }
 ```
 
