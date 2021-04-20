@@ -24,6 +24,7 @@ import kotlinx.android.parcel.RawValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.*
 import kotlin.math.min
 
 open class EnhancedRecyclerView @JvmOverloads constructor(
@@ -234,7 +235,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
                 super.canReuseUpdatedViewHolder(viewHolder)
     }
 
-    abstract class Adapter<T, VH : ViewHolder> : ListAdapter<T, VH>(DiffUtilCallback()) {
+    abstract class Adapter<T, VH : ViewHolder> : ListAdapter<T, VH>(getAsyncDifferConfig()) {
 
         lateinit var parent: EnhancedRecyclerView
 
@@ -332,6 +333,29 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
         companion object {
             private const val KEY_itemViewStates = "itemViewStates"
+
+            fun <T> getAsyncDifferConfig() =
+                AsyncDifferConfig.Builder<T>(DiffUtilCallback())
+                    .setBackgroundThreadExecutor(
+                        object : ThreadPoolExecutor(
+                            2,
+                            2,
+                            0L,
+                            TimeUnit.MILLISECONDS,
+                            LinkedBlockingQueue()
+                        ) {
+                            override fun execute(command: Runnable) {
+                                super.execute {
+                                    try {
+                                        command.run()
+                                    } catch (e: Exception) {
+                                    }
+                                }
+                            }
+                        }
+                    )
+                    .build()
+
         }
     }
 
