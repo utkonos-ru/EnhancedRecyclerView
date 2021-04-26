@@ -1,3 +1,9 @@
 <resources>
-    <string name="app_name">enhanced-recycler-view</string>
+    <string name="app_name">EnhancedRecyclerView</string>
+    <string name="main_title">Ready to order?</string>
+    <string name="dish_title">%d.  %s</string>
+    <string name="choose">choose</string>
+    <string name="refresh">refresh</string>
+    <string name="good_choice">Good choice!</string>
+    <string name="no_dish">Sorry, we don\'t have this</string>
 </resources>

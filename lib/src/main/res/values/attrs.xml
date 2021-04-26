@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="EnhancedRecyclerView">
+        <attr name="behaviour" format="enum">
+            <enum name="scroll" value="0"/>
+            <enum name="centring_scroll" value="1"/>
+            <enum name="swipe" value="2"/>
+        </attr>
+    </declare-styleable>
+</resources>

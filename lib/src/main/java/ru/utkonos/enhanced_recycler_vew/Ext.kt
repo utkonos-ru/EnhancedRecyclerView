@@ -6,6 +6,7 @@ import android.view.View
 import androidx.databinding.ViewDataBinding
 import androidx.recyclerview.R
 import androidx.recyclerview.widget.RecyclerView
+import io.reactivex.Single
 import java.util.*
 
 internal val View.isInParentBounds: Boolean
@@ -29,10 +30,12 @@ internal fun ViewDataBinding.setVariable(name: String, value: Any?) {
 
 fun EnhancedRecyclerView.SuspendGetNextPage.doOnInvoke(block: (List<Any?>?) -> Unit) =
     object : EnhancedRecyclerView.SuspendGetNextPage {
-        override suspend fun invoke() = this@doOnInvoke.invoke().also(block)
+        override suspend fun invoke(currentList: List<Any?>?) =
+            this@doOnInvoke.invoke(currentList).also(block)
     }
 
 fun EnhancedRecyclerView.GetNextPageSingle.doOnSuccess(block: (List<Any?>) -> Unit) =
     object : EnhancedRecyclerView.GetNextPageSingle {
-        override fun invoke() = this@doOnSuccess.invoke().doOnSuccess(block)
+        override fun invoke(currentList: List<Any?>?): Single<List<Any?>> =
+            this@doOnSuccess.invoke(currentList).doOnSuccess(block)
     }
