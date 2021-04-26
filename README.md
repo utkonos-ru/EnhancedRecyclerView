@@ -120,13 +120,12 @@ data class MyItemDataClass(
 EnhancedRecyclerView allows you to do pagination in a very simple way. All you need to do is set an interface for loading next page. There are several types of these interfaces and here are examples of all their implementations:
 ```kotlin
 recycler_view.apply {
-    // Base your data loading logic on this property
-    val currentSize = this.currentList.size
+    val offset = this.currentList.size
 
-    synchronousGetNextPage = { myDataSource.getNextPage(offset = currentSize) }
-    getNextPageOnCallback = { onSuccess, onError -> onSuccess(myDataSource.getNextPage(offset = currentSize)) }
-    suspendGetNextPage = suspend { myDataSource.getNextPage(offset = currentSize) }
-    getNextPageSingle = { io.reactivex.Single.just(myDataSource.getNextPage(offset = currentSize)) }
+    synchronousGetNextPage = { myDataSource.getNextPage(offset) }
+    getNextPageOnCallback = { onSuccess, onError -> onSuccess(myDataSource.getNextPage(offset)) }
+    suspendGetNextPage = suspend { myDataSource.getNextPage(offset) }
+    getNextPageSingle = { io.reactivex.Single.just(myDataSource.getNextPage(offset)) }
 }
 ```
 Choose one interface that best suits the data loading logic in your application.
