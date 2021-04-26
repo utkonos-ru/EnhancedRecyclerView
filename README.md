@@ -62,7 +62,7 @@ For this functionality to work, your data list must be `androidx.databinding.Obs
 ###  DiffUtils
 EnhancedRecyclerView provides the ability to conveniently work with DiffUtils. In this case you need to implement `ru.utkonos.enhanced_recycler_vew.Diffable` interface to your item data class.
 
-By default, the diff is calculated based on the equality of instances of this class. But you can also minimize the difference by excluding fields that are not involved in the rejection. This can be done in a Kotlin-friendly manner using data classes. To do this, implement the `ru.utkonos.enhanced_recycler_vew.DiffableWithSameClass` interface:
+By default, the diff is calculated based on the equality of instances of your item data class. But you can also minimize the difference by excluding fields that are not involved in the display. This can be done in a Kotlin-friendly manner using data classes. To do this, implement the `ru.utkonos.enhanced_recycler_vew.DiffableWithSameClass` interface:
 ```kotlin
 data class MyItemDataClass(
     // Properties required for display
@@ -111,6 +111,7 @@ If you return null or an empty list it means the end of the list and your interf
 Your interface will be automatically called when you scroll to the middle of the last page. To change this logic use `ru.utkonos.enhanced_recycler_vew.GetItemCountBeforeNextPage` interface in combination with `lastPageSize` property:
 ```kotlin
 recycler_view.getItemCountBeforeNextPage = object : EnhancedRecyclerView.GetItemCountBeforeNextPage {
+
     // Will be called when scrolling below 3/4 of the last page
     override fun invoke(): Int = recycler_view.lastPageSize / 4
 }
