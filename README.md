@@ -59,64 +59,6 @@ EnhancedRecyclerView can observe its data list. In this case, when the list is u
 
 For this functionality to work, your data list must be `androidx.databinding.ObservableArrayList`.
 
-###  DiffUtils
-EnhancedRecyclerView provides the ability to conveniently work with DiffUtils. In this case you need to implement `ru.utkonos.enhanced_recycler_vew.Diffable` interface to your item data class.
-
-By default, the diff is calculated based on the equality of instances of your item data class. But you can also minimize the difference by excluding fields that are not involved in the display. This can be done in a Kotlin-friendly manner using data classes. To do this, implement the `ru.utkonos.enhanced_recycler_vew.DiffableWithSameClass` interface:
-```kotlin
-data class MyItemDataClass(
-    // Properties required for display
-    override val id: Long,
-    val name: String,
-
-    // Properties not involved in display
-    val code: UUID,
-    val groupId: Long
-) : DiffableWithSameClass<MyItemDataClass> {
-
-    // Set the values from the current object to the compared object to exclude them from diff
-    override fun minimizeDiff(other: MyItemDataClass) =
-        other.copy(code = code, groupId = groupId)
-}
-```
-
-### Pagination
-EnhancedRecyclerView allows you to do pagination in a very simple way. All you need to do is set an interface for loading next page. There are several types of these interfaces, so you can choose the one that best suits the data loading logic in your application. Here are examples of all their implementations:
-```kotlin
-object : SynchronousGetNextPage {
-    override fun invoke(currentList: List<Any?>?): List<Any?>? {}
-}
-object : GetNextPageOnCallback {
-    override fun invoke(
-        currentList: List<Any?>?,
-        onSuccess: (List<Any?>?) -> Unit,
-        onError: () -> Unit
-    ) {}
-}
-object : SuspendGetNextPage {
-    override suspend fun invoke(currentList: List<Any?>?): List<Any?>? {}
-}
-object : GetNextPageSingle {
-    // io.reactivex.Single
-    override fun invoke(currentList: List<Any?>?): Single<List<Any?>> {}
-}
-```
-To use any of them, just call:
-```koltin
-recycler_view.getNextPage = myGetNextPage
-```
-
-If you return null or an empty list it means the end of the list and your interface will no longer be called.
-
-Your interface will be automatically called when you scroll to the middle of the last page. To change this logic use `ru.utkonos.enhanced_recycler_vew.GetItemCountBeforeNextPage` interface in combination with `lastPageSize` property:
-```kotlin
-recycler_view.getItemCountBeforeNextPage = object : EnhancedRecyclerView.GetItemCountBeforeNextPage {
-
-    // Will be called when scrolling below 3/4 of the last page
-    override fun invoke(): Int = recycler_view.lastPageSize / 4
-}
-```
-
 ### DataBinding support
 EnhancedRecyclerView has an unprecedented way of initialization, without writing any program code at all. That is, you do not need to create an adapter and call methods on the RecyclerView. This is achieved through [Android DataBinding](https://developer.android.com/topic/libraries/data-binding). All you have to do is set two attributes in xml: `list` and `getItemLayout`:
 ```xml
@@ -145,16 +87,66 @@ How it works:
 2. The adapter is generated automatically based on the bound data
 3. In your item layout xml, you create two variables (each is optional): `itemPosition` and `itemData`. And in `onBindViewHolder` of the generated Adapter, the corresponding values will be set to these variables
 
-Other supported attributes:
+More attributes:
 ```xml
-getItemCountBeforeNextPage="@{() -> }"
-synchronousGetNextPage="@{(currentList) -> }"
-getNextPageOnCallback="@{(currentList, onSuccess, onError) -> }"
-getNextPageSingle="@{(currentList) -> }"
 onItemCreated="@{(viewHolder) -> }"
 onItemBound="@{(viewHolder) -> }"
 onItemRecycled="@{(viewHolder) -> }"
 onItemIsFullyVisible="@{(viewHolder) -> }"
+```
+
+###  DiffUtils
+EnhancedRecyclerView provides the ability to conveniently work with DiffUtils. In this case you need to implement `ru.utkonos.enhanced_recycler_vew.Diffable` interface to your item data class.
+
+By default, the diff is calculated based on the equality of instances of your item data class. But you can also minimize the difference by excluding fields that are not involved in the display. This can be done in a Kotlin-friendly manner using data classes. To do this, implement the `ru.utkonos.enhanced_recycler_vew.DiffableWithSameClass` interface:
+```kotlin
+data class MyItemDataClass(
+    // Properties required for display
+    override val id: Long,
+    val name: String,
+
+    // Properties not involved in display
+    val code: UUID,
+    val groupId: Long
+) : DiffableWithSameClass<MyItemDataClass> {
+
+    // Set the values from the current object to the compared object to exclude them from diff
+    override fun minimizeDiff(other: MyItemDataClass) =
+        other.copy(code = code, groupId = groupId)
+}
+```
+
+### Pagination
+EnhancedRecyclerView allows you to do pagination in a very simple way. All you need to do is set an interface for loading next page. There are several types of these interfaces and here are examples of all their implementations:
+```kotlin
+recycler_view.apply {
+    // Base your data loading logic on this property
+    val currentSize = this.currentList.size
+
+    synchronousGetNextPage = { myDataSource.getNextPage(offset = currentSize) }
+    getNextPageOnCallback = { onSuccess, onError -> onSuccess(myDataSource.getNextPage(offset = currentSize)) }
+    suspendGetNextPage = suspend { myDataSource.getNextPage(offset = currentSize) }
+    getNextPageSingle = { io.reactivex.Single.just(myDataSource.getNextPage(offset = currentSize)) }
+}
+```
+Choose one interface that best suits the data loading logic in your application.
+
+If you return null or an empty list it means the end of the list and your interface will no longer be called.
+
+By default, your interface will be automatically called when you scroll to the middle of the last page. You can change this logic like this:
+```kotlin
+// Next page loading will start after scrolling below 1/4 of the last page
+recycler_view.getNextPageLoadingPosition = {
+    recycler_view.currentList.size - recycler_view.lastPage.size / 4
+}
+```
+
+You can also do it with DataBinding via one of the following attributes:
+```xml
+synchronousGetNextPage="@{(currentList) -> }"
+getNextPageOnCallback="@{(currentList, onSuccess, onError) -> }"
+getNextPageSingle="@{(currentList) -> }"
+getNextPageLoadingPosition="@{(currentList, lastPage) -> }"
 ```
 
 ### Different behaviour types
