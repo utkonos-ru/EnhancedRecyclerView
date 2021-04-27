@@ -125,17 +125,22 @@ EnhancedRecyclerView allows you to do pagination in a very simple way. All you n
 recycler_view.apply {
     val offset = this.currentList.size
 
-    synchronousGetNextPage = lambda@{
-        return@lambda myDataSource.getNextPage(offset)
+    synchronousGetNextPage = {
+        // return List
+        myDataSource.getPage(offset)
     }
     getNextPageOnCallback = { onSuccess, onError ->
-        onSuccess(myDataSource.getNextPage(offset))
+        val result = myDataSource.getPage(offset)
+        // pass List
+        onSuccess(result)
     }
-    suspendGetNextPage = suspend lambda@{
-        return@lambda myDataSource.getNextPage(offset)
+    suspendGetNextPage = suspend {
+        // return List
+        myDataSource.getPage(offset)
     }
-    getNextPageSingle = lambda@{
-        return@lambda io.reactivex.Single.just(myDataSource.getNextPage(offset))
+    getNextPageSingle = {
+        // return Single<List>
+        io.reactivex.Single.just(myDataSource.getPage(offset))
     }
 }
 ```
