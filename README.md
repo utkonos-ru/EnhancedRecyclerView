@@ -49,7 +49,7 @@ EnhancedRecyclerView automatically saves and restores its scroll position during
 
 The state of an item is saved both during `onSaveInstanceState` and when scrolling away from that item. In this case, when scrolling back to that item, its state is restored.
 
-For item state saving to work, the corresponding item data class [must be identifiable](#item-identification). Also do not forget to set id to your item view.
+For item state saving to work, the corresponding item data class [must be identifiable](#item-identification). Also do not forget to set id to your item view (different item views may have the same id).
 
 ### High performance for nested RecyclerViews
 EnhancedRecyclerView allows you to create nested RecyclerViews that work perfectly without any artifacts. You don't need to write any special code for this, just use EnhancedRecyclerView as your nested RecyclerView.
