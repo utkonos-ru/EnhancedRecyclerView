@@ -59,6 +59,9 @@ EnhancedRecyclerView can observe its data list. In this case, when the list is u
 
 For this functionality to work, your data list must be `androidx.databinding.ObservableArrayList`.
 
+### Different behaviour types
+EnhancedRecyclerView supports three types of behaviour: sroll, centring scroll, swipe. To set them, use attribute `app:behaviour`.
+
 ### DataBinding support
 EnhancedRecyclerView has an unprecedented way of initialization, without writing any program code at all. That is, you do not need to create an adapter and call methods on the RecyclerView. This is achieved through [Android DataBinding](https://developer.android.com/topic/libraries/data-binding). All you have to do is set two attributes in xml: `list` and `getItemLayout`:
 ```xml
@@ -122,10 +125,18 @@ EnhancedRecyclerView allows you to do pagination in a very simple way. All you n
 recycler_view.apply {
     val offset = this.currentList.size
 
-    synchronousGetNextPage = { myDataSource.getNextPage(offset) }
-    getNextPageOnCallback = { onSuccess, onError -> onSuccess(myDataSource.getNextPage(offset)) }
-    suspendGetNextPage = suspend { myDataSource.getNextPage(offset) }
-    getNextPageSingle = { io.reactivex.Single.just(myDataSource.getNextPage(offset)) }
+    synchronousGetNextPage = lambda@{
+        return@lambda myDataSource.getNextPage(offset)
+    }
+    getNextPageOnCallback = { onSuccess, onError ->
+        onSuccess(myDataSource.getNextPage(offset))
+    }
+    suspendGetNextPage = suspend lambda@{
+        return@lambda myDataSource.getNextPage(offset)
+    }
+    getNextPageSingle = lambda@{
+        return@lambda io.reactivex.Single.just(myDataSource.getNextPage(offset))
+    }
 }
 ```
 Choose one interface that best suits the data loading logic in your application.
@@ -147,9 +158,6 @@ getNextPageOnCallback="@{(currentList, onSuccess, onError) -> }"
 getNextPageSingle="@{(currentList) -> }"
 getNextPageLoadingPosition="@{(currentList, lastPage) -> }"
 ```
-
-### Different behaviour types
-EnhancedRecyclerView supports three types of behaviour: sroll, centring scroll, swipe. To set them, use attribute `app:behaviour`.
 
 ### Item identification
 For different pupuses EnhancedRecyclerView needs to identificate its items. For this identification to work, you need to implement `ru.utkonos.enhanced_recycler_vew.Identifiable` to your item data classes:
