@@ -62,10 +62,10 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
     private var onDataChangedCallback: OnDataChangedCallback? = null
 
-    var getNextPageLoadingPosition: (() -> Int)?
-        get() = paginationScrollListener?.getNextPageLoadingPosition
+    var getPositionToLoadNextPage: (() -> Int)?
+        get() = paginationScrollListener?.getPositionToLoadNextPage
         set(value) {
-            paginationScrollListener?.getNextPageLoadingPosition = value
+            paginationScrollListener?.getPositionToLoadNextPage = value
         }
     var synchronousGetNextPage: (() -> List<Any?>?)? = null
         set(value) {
@@ -557,7 +557,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         @Volatile
         private var allPagesAreLoaded = false
 
-        var getNextPageLoadingPosition: (() -> Int)? = null
+        var getPositionToLoadNextPage: (() -> Int)? = null
 
         private val coroutineScope = ClearableCoroutineScope(Dispatchers.IO)
 
@@ -569,7 +569,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
                 val lastVisibleItemPosition =
                     ((recyclerView.layoutManager as? LinearLayoutManager) ?: return)
                         .findLastVisibleItemPosition()
-                val loadPosition = getNextPageLoadingPosition?.invoke()
+                val loadPosition = getPositionToLoadNextPage?.invoke()
                     ?: parent.currentList.size - 1 - parent.lastPage.size / 2
                 if (lastVisibleItemPosition >= loadPosition) loadPage()
             }
@@ -694,7 +694,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         operator fun invoke(itemPosition: Int, itemData: Any?): Int?
     }
 
-    interface GetNextPageLoadingPosition {
+    interface GetPositionToLoadNextPage {
         operator fun invoke(currentList: List<Any?>, lastPage: List<Any?>): Int
     }
 
@@ -743,12 +743,12 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         }
 
         @JvmStatic
-        @BindingAdapter("getNextPageLoadingPosition")
-        fun setGetNextPageLoadingPosition(
+        @BindingAdapter("getPositionToLoadNextPage")
+        fun setGetPositionToLoadNextPage(
             view: EnhancedRecyclerView,
-            value: GetNextPageLoadingPosition?
+            value: GetPositionToLoadNextPage?
         ) {
-            view.getNextPageLoadingPosition =
+            view.getPositionToLoadNextPage =
                 value?.let { { value(view.currentList, view.lastPage) } }
         }
 

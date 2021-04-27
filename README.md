@@ -101,7 +101,7 @@ onItemIsFullyVisible="@{(viewHolder) -> }"
 ###  DiffUtils
 EnhancedRecyclerView provides the ability to conveniently work with DiffUtils. In this case you need to implement `ru.utkonos.enhanced_recycler_vew.Diffable` interface to your item data class.
 
-By default, the diff is calculated based on the equality of instances of your item data class. But you can also minimize the difference by excluding fields that are not involved in the display. This can be done in a Kotlin-friendly manner using data classes. To do this, implement the `ru.utkonos.enhanced_recycler_vew.DiffableWithSameClass` interface:
+By default, the diff is calculated based on the equality of instances of your item data class. But you can also minimize the difference by excluding fields that are not involved in the display. This can be done in a Kotlin-friendly manner using data classes. To do this, implement `ru.utkonos.enhanced_recycler_vew.DiffableWithSameClass` interface:
 ```kotlin
 data class MyItemDataClass(
     // Properties required for display
@@ -118,6 +118,8 @@ data class MyItemDataClass(
         other.copy(code = code, groupId = groupId)
 }
 ```
+
+Note that to use `Diffable` interface you need to implement `id`, because this interface [extends `Identifiable` interface](#item-identification).
 
 ### Pagination
 EnhancedRecyclerView allows you to do pagination in a very simple way. All you need to do is set an interface for loading next page. There are several types of these interfaces and here are examples of all their implementations:
@@ -151,7 +153,7 @@ If you return null or an empty list it means the end of the list and your interf
 By default, your interface will be automatically called when you scroll to the middle of the last page. You can change this logic like this:
 ```kotlin
 // Next page loading will start after scrolling below 1/4 of the last page
-recycler_view.getNextPageLoadingPosition = {
+recycler_view.getPositionToLoadNextPage = {
     recycler_view.currentList.size - recycler_view.lastPage.size / 4
 }
 ```
@@ -161,7 +163,7 @@ You can also do it with DataBinding via one of the following attributes:
 synchronousGetNextPage="@{(currentList) -> }"
 getNextPageOnCallback="@{(currentList, onSuccess, onError) -> }"
 getNextPageSingle="@{(currentList) -> }"
-getNextPageLoadingPosition="@{(currentList, lastPage) -> }"
+getPositionToLoadNextPage="@{(currentList, lastPage) -> }"
 ```
 
 ### Item identification
