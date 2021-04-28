@@ -69,27 +69,43 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         }
     var synchronousGetNextPage: (() -> List<Any?>?)? = null
         set(value) {
-            clearGetNextPages()
             field = value
+            if (value != null) {
+                getNextPageOnCallback = null
+                suspendGetNextPage = null
+                getNextPageSingle = null
+            }
             updatePaginationScrollListener()
         }
     var getNextPageOnCallback: ((onSuccess: (List<Any?>?) -> Unit, onError: () -> Unit) -> Unit)? =
         null
         set(value) {
-            clearGetNextPages()
             field = value
+            if (value != null) {
+                synchronousGetNextPage = null
+                suspendGetNextPage = null
+                getNextPageSingle = null
+            }
             updatePaginationScrollListener()
         }
     var suspendGetNextPage: (suspend () -> List<Any?>?)? = null
         set(value) {
-            clearGetNextPages()
             field = value
+            if (value != null) {
+                synchronousGetNextPage = null
+                getNextPageOnCallback = null
+                getNextPageSingle = null
+            }
             updatePaginationScrollListener()
         }
     var getNextPageSingle: (() -> Single<List<Any?>>)? = null
         set(value) {
-            clearGetNextPages()
             field = value
+            if (value != null) {
+                synchronousGetNextPage = null
+                getNextPageOnCallback = null
+                suspendGetNextPage = null
+            }
             updatePaginationScrollListener()
         }
     private var paginationScrollListener: PaginationScrollListener? = null
@@ -215,13 +231,6 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
             (onDataChangedCallback ?: OnDataChangedCallback(this)).also { it.list = list }
         else
             null.also { onDataChangedCallback?.list = null }
-    }
-
-    private fun clearGetNextPages() {
-        synchronousGetNextPage = null
-        getNextPageOnCallback = null
-        suspendGetNextPage = null
-        getNextPageSingle = null
     }
 
     private fun updatePaginationScrollListener() {
