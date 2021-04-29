@@ -7,6 +7,8 @@
             name="activity"
             type="ru.utkonos.enhanced_recycler_view.MainActivity" />
 
+        <import type="kotlin.collections.MapsKt" />
+
     </data>
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -40,9 +42,9 @@
         </LinearLayout>
 
         <ru.utkonos.enhanced_recycler_vew.EnhancedRecyclerView
-            activity="@{activity}"
             getItemLayout="@{() -> @layout/item_dish}"
             list="@{activity.dishes}"
+            setItemExtras='@{(extras) -> extras.put("activity", activity)}'
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp" />

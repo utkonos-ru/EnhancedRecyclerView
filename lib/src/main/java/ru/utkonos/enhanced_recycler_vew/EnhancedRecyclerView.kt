@@ -114,6 +114,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
     private var onItemCreated: OnViewDataBindingHolderUpdated? = null
     private var onItemBound: OnViewDataBindingHolderUpdated? = null
+    private var setItemExtras: SetItemExtras? = null
     private var onItemRecycled: OnViewDataBindingHolderUpdated? = null
     var onItemIsFullyVisible: OnViewHolderUpdated? = null
         set(value) {
@@ -467,7 +468,11 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             super.onBindViewHolder(holder, position)
             if (holder !is ViewDataBindingHolder) return
-            holder.bind(position, getItem(position))
+            holder.bind(
+                position,
+                getItem(position),
+                mutableMapOf<String, Any?>().also { parent.setItemExtras?.invoke(it) }
+            )
             parent.onItemBound?.invoke(holder)
         }
 
@@ -493,10 +498,12 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
     class ViewDataBindingHolder internal constructor(val itemBinding: ViewDataBinding) :
         ViewHolder(itemBinding.root) {
 
-        internal fun bind(position: Int, data: Any?) {
+        internal fun bind(position: Int, data: Any?, extras: Map<String, *>) {
             bindPosition(position)
 
             itemBinding.setVariable("itemData", data)
+
+            extras.forEach { itemBinding.setVariable(it.key, it.value) }
 
             //Сразу привязываем изменения, чтобы не отрисовывался empty state
             itemBinding.executePendingBindings()
@@ -588,8 +595,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
             override fun onViewAttachedToWindow(v: View?) = Unit
 
             override fun onViewDetachedFromWindow(v: View?) {
-                coroutineScope.clear()
-                disposables.clear()
+                clear()
             }
         }
 
@@ -646,6 +652,11 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         fun onRemoved() {
             parent.removeOnScrollListener(onScrollListener)
             parent.removeOnAttachStateChangeListener(onAttachStateChangeListener)
+        }
+
+        private fun clear() {
+            coroutineScope.clear()
+            disposables.clear()
         }
     }
 
@@ -737,6 +748,10 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         operator fun invoke(viewHolder: ViewDataBindingHolder)
     }
 
+    interface SetItemExtras {
+        operator fun invoke(extras: MutableMap<String, Any?>)
+    }
+
     companion object {
 
         @JvmStatic
@@ -814,6 +829,15 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
             value: OnViewDataBindingHolderUpdated
         ) {
             view.onItemBound = value
+        }
+
+        @JvmStatic
+        @BindingAdapter("setItemExtras")
+        fun setSetItemExtras(
+            view: EnhancedRecyclerView,
+            value: SetItemExtras
+        ) {
+            view.setItemExtras = value
         }
 
         @JvmStatic
