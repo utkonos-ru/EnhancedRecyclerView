@@ -25,7 +25,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.*
-import kotlin.math.min
 
 open class EnhancedRecyclerView @JvmOverloads constructor(
     context: Context,
@@ -46,26 +45,24 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
     val currentList: List<Any?> get() = (adapter as? Adapter<*, *>)?.currentList.orEmpty()
 
-    private var list: List<Any?>? = null
+    private var boundList: List<Any?>? = null
         set(value) {
             if (field === value) return
             field = value
-            updateAdapter()
+            updateDataBindingAdapter()
         }
 
     private var getItemLayout: GetItemLayout? = null
         set(value) {
             if (field === value) return
             field = value
-            updateAdapter()
+            updateDataBindingAdapter()
         }
 
-    private var onDataChangedCallback: OnDataChangedCallback? = null
-
     var getPositionToLoadNextPage: (() -> Int)?
-        get() = paginationScrollListener?.getPositionToLoadNextPage
+        get() = paginator?.getPositionToLoadNextPage
         set(value) {
-            paginationScrollListener?.getPositionToLoadNextPage = value
+            paginator?.getPositionToLoadNextPage = value
         }
     var synchronousGetNextPage: (() -> List<Any?>?)? = null
         set(value) {
@@ -75,7 +72,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
                 suspendGetNextPage = null
                 getNextPageSingle = null
             }
-            updatePaginationScrollListener()
+            updatePaginator()
         }
     var getNextPageOnCallback: ((onSuccess: (List<Any?>?) -> Unit, onError: () -> Unit) -> Unit)? =
         null
@@ -86,7 +83,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
                 suspendGetNextPage = null
                 getNextPageSingle = null
             }
-            updatePaginationScrollListener()
+            updatePaginator()
         }
     var suspendGetNextPage: (suspend () -> List<Any?>?)? = null
         set(value) {
@@ -96,7 +93,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
                 getNextPageOnCallback = null
                 getNextPageSingle = null
             }
-            updatePaginationScrollListener()
+            updatePaginator()
         }
     var getNextPageSingle: (() -> Single<List<Any?>>)? = null
         set(value) {
@@ -106,9 +103,9 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
                 getNextPageOnCallback = null
                 suspendGetNextPage = null
             }
-            updatePaginationScrollListener()
+            updatePaginator()
         }
-    private var paginationScrollListener: PaginationScrollListener? = null
+    private var paginator: Paginator? = null
     var lastPage = emptyList<Any?>()
         private set
 
@@ -119,9 +116,9 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
     var onItemIsFullyVisible: OnViewHolderUpdated? = null
         set(value) {
             field = value
-            updateItemIsFullyVisibleListener()
+            updateItemIsFullyVisibleTrigger()
         }
-    private var itemIsFullyVisibleListener: ItemIsFullyVisibleListener? = null
+    private var itemIsFullyVisibleTrigger: ItemIsFullyVisibleTrigger? = null
 
     var behaviour = Behaviour.SCROLL
         set(value) {
@@ -209,8 +206,8 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         children.mapNotNull { getChildViewHolder(it) as? ViewHolder }
             .firstOrNull { it.unstableItemId == oldViewHolder.unstableItemId && it !== oldViewHolder }
 
-    private fun updateAdapter() {
-        val list = list
+    private fun updateDataBindingAdapter() {
+        val list = boundList
         val getItemLayout = getItemLayout
         if (list == null || getItemLayout == null) {
             adapter = null
@@ -227,29 +224,22 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         }
     }
 
-    private fun updateOnDataChangedCallback(list: List<*>?) {
-        onDataChangedCallback = if (list is ObservableArrayList<*>)
-            (onDataChangedCallback ?: OnDataChangedCallback(this)).also { it.list = list }
-        else
-            null.also { onDataChangedCallback?.list = null }
-    }
-
-    private fun updatePaginationScrollListener() {
-        paginationScrollListener =
+    private fun updatePaginator() {
+        paginator =
             if (synchronousGetNextPage != null
                 || getNextPageOnCallback != null
                 || suspendGetNextPage != null
                 || getNextPageSingle != null
             )
-                paginationScrollListener ?: PaginationScrollListener(this)
+                paginator ?: Paginator(this)
             else
-                null.also { paginationScrollListener?.onRemoved() }
+                null.also { paginator?.onRemoved() }
     }
 
-    private fun updateItemIsFullyVisibleListener() {
-        itemIsFullyVisibleListener = onItemIsFullyVisible
-            ?.let { itemIsFullyVisibleListener ?: ItemIsFullyVisibleListener(this) }
-            ?: null.also { itemIsFullyVisibleListener?.onRemoved() }
+    private fun updateItemIsFullyVisibleTrigger() {
+        itemIsFullyVisibleTrigger = onItemIsFullyVisible
+            ?.let { itemIsFullyVisibleTrigger ?: ItemIsFullyVisibleTrigger(this) }
+            ?: null.also { itemIsFullyVisibleTrigger?.onRemoved() }
     }
 
     private fun updateSnapHelpers() {
@@ -284,10 +274,48 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
         var actualList: List<T>? = null
 
+        private var submittingList = false
+
         private var itemViewStates = ArrayList<ItemViewState>()
+
+        private val onListChangedCallback by lazy {
+            object : ObservableList.OnListChangedCallback<ObservableArrayList<*>>() {
+
+                override fun onChanged(sender: ObservableArrayList<*>?) = resubmitList()
+
+                override fun onItemRangeChanged(
+                    sender: ObservableArrayList<*>?,
+                    positionStart: Int,
+                    itemCount: Int
+                ) = resubmitList()
+
+                override fun onItemRangeInserted(
+                    sender: ObservableArrayList<*>?,
+                    positionStart: Int,
+                    itemCount: Int
+                ) = resubmitList()
+
+                override fun onItemRangeMoved(
+                    sender: ObservableArrayList<*>?,
+                    fromPosition: Int,
+                    toPosition: Int,
+                    itemCount: Int
+                ) = resubmitList()
+
+                override fun onItemRangeRemoved(
+                    sender: ObservableArrayList<*>?,
+                    positionStart: Int,
+                    itemCount: Int
+                ) = resubmitList()
+            }
+        }
 
         override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
             parent = recyclerView as EnhancedRecyclerView
+        }
+
+        fun resubmitList() {
+            if (!submittingList) submitList(actualList)
         }
 
         @CallSuper
@@ -297,10 +325,11 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
         @CallSuper
         override fun submitList(list: List<T>?, commitCallback: Runnable?) {
+            submittingList = true
             super.submitList(list) {
                 actualList = list
+                submittingList = false
                 parent.apply {
-                    updateOnDataChangedCallback(list)
                     lastPage = list.orEmpty()
                     if (isBindingAsNested) {
                         isBindingAsNested = false
@@ -516,56 +545,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         companion object
     }
 
-    private class OnDataChangedCallback(private val parent: RecyclerView) :
-        ObservableList.OnListChangedCallback<ObservableArrayList<*>>() {
-
-        var list: ObservableArrayList<*>? = null
-            set(value) {
-                if (field === value) return
-                field?.removeOnListChangedCallback(this)
-                field = value
-                value?.addOnListChangedCallback(this)
-            }
-
-        override fun onChanged(sender: ObservableArrayList<*>?) {
-            parent.adapter?.notifyDataSetChanged()
-        }
-
-        override fun onItemRangeRemoved(
-            sender: ObservableArrayList<*>?,
-            positionStart: Int,
-            itemCount: Int
-        ) {
-            parent.adapter?.notifyItemRangeRemoved(positionStart, itemCount)
-        }
-
-        override fun onItemRangeMoved(
-            sender: ObservableArrayList<*>?,
-            fromPosition: Int,
-            toPosition: Int,
-            itemCount: Int
-        ) {
-            parent.adapter?.notifyItemRangeChanged(min(fromPosition, toPosition), itemCount)
-        }
-
-        override fun onItemRangeInserted(
-            sender: ObservableArrayList<*>?,
-            positionStart: Int,
-            itemCount: Int
-        ) {
-            parent.adapter?.notifyItemRangeInserted(positionStart, itemCount)
-        }
-
-        override fun onItemRangeChanged(
-            sender: ObservableArrayList<*>?,
-            positionStart: Int,
-            itemCount: Int
-        ) {
-            parent.adapter?.notifyItemRangeChanged(positionStart, itemCount)
-        }
-    }
-
-    private class PaginationScrollListener(private val parent: EnhancedRecyclerView) {
+    private class Paginator(private val parent: EnhancedRecyclerView) {
 
         @Volatile
         private var pageIsLoading = false
@@ -637,13 +617,12 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
         private fun onPageLoaded(page: List<Any?>?) {
             pageIsLoading = false
-            val data =
-                ((parent.adapter as? Adapter<*, *>)?.actualList as? MutableList<Any?>) ?: return
             if (!page.isNullOrEmpty()) {
-                data.addAll(page)
+                val adapter = parent.adapter as? Adapter<Any?, *> ?: return
+                val list = adapter.actualList as? MutableList<Any?> ?: return
+                list.addAll(page)
                 parent.lastPage = page
-                if (data !is ObservableArrayList)
-                    parent.adapter?.notifyItemRangeInserted(data.size - page.size, page.size)
+                if (list !is ObservableArrayList) adapter.resubmitList()
             } else {
                 allPagesAreLoaded = true
             }
@@ -660,7 +639,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         }
     }
 
-    class ItemIsFullyVisibleListener(private val parent: EnhancedRecyclerView) {
+    class ItemIsFullyVisibleTrigger(private val parent: EnhancedRecyclerView) {
 
         private val fullyVisibleItems = HashSet<View>()
 
@@ -763,7 +742,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         @JvmStatic
         @BindingAdapter("list")
         fun setList(view: EnhancedRecyclerView, value: List<*>?) {
-            view.list = value
+            view.boundList = value
         }
 
         @JvmStatic
