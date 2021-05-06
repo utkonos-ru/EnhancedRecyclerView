@@ -6,7 +6,7 @@ import androidx.databinding.ViewDataBinding
 import io.reactivex.Single
 import java.util.*
 
-internal val View.isInParentBounds: Boolean
+val View.isInParentBounds: Boolean
     get() {
         val parentBounds = Rect().also { (parent as? View)?.getHitRect(it) ?: return false }
         return if (getLocalVisibleRect(parentBounds))
