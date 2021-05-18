@@ -24,7 +24,10 @@ import kotlinx.android.parcel.RawValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.*
 import java.util.concurrent.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashSet
 
 open class EnhancedRecyclerView @JvmOverloads constructor(
     context: Context,
@@ -272,8 +275,10 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
         lateinit var parent: EnhancedRecyclerView
 
+        @Volatile
         var actualList: List<T>? = null
 
+        @Volatile
         private var submittingList = false
 
         private var itemViewStates = ArrayList<ItemViewState>()
@@ -326,7 +331,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         @CallSuper
         override fun submitList(list: List<T>?, commitCallback: Runnable?) {
             submittingList = true
-            super.submitList(list) {
+            super.submitList(ArrayList(list)) {
                 actualList = list
                 submittingList = false
                 parent.apply {
