@@ -278,49 +278,16 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         @Volatile
         var actualList: List<T>? = null
 
-        @Volatile
-        private var submittingList = false
-
         private var itemViewStates = ArrayList<ItemViewState>()
 
-        private val onListChangedCallback by lazy {
-            object : ObservableList.OnListChangedCallback<ObservableArrayList<*>>() {
-
-                override fun onChanged(sender: ObservableArrayList<*>?) = resubmitList()
-
-                override fun onItemRangeChanged(
-                    sender: ObservableArrayList<*>?,
-                    positionStart: Int,
-                    itemCount: Int
-                ) = resubmitList()
-
-                override fun onItemRangeInserted(
-                    sender: ObservableArrayList<*>?,
-                    positionStart: Int,
-                    itemCount: Int
-                ) = resubmitList()
-
-                override fun onItemRangeMoved(
-                    sender: ObservableArrayList<*>?,
-                    fromPosition: Int,
-                    toPosition: Int,
-                    itemCount: Int
-                ) = resubmitList()
-
-                override fun onItemRangeRemoved(
-                    sender: ObservableArrayList<*>?,
-                    positionStart: Int,
-                    itemCount: Int
-                ) = resubmitList()
-            }
-        }
+        private val onListChangedCallback by lazy { OnListChangedCallback(parent) }
 
         override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
             parent = recyclerView as EnhancedRecyclerView
         }
 
         fun resubmitList() {
-            if (!submittingList) submitList(actualList)
+            submitList(actualList)
         }
 
         @CallSuper
@@ -330,10 +297,9 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
         @CallSuper
         override fun submitList(list: List<T>?, commitCallback: Runnable?) {
-            submittingList = true
             super.submitList(ArrayList(list)) {
                 actualList = list
-                submittingList = false
+                (list as? ObservableArrayList<*>)?.let(onListChangedCallback::bindList)
                 parent.apply {
                     lastPage = list.orEmpty()
                     if (isBindingAsNested) {
@@ -548,6 +514,50 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         }
 
         companion object
+    }
+
+    private class OnListChangedCallback(private val parent: EnhancedRecyclerView) :
+        ObservableList.OnListChangedCallback<ObservableArrayList<*>>() {
+
+        private var boundList: ObservableArrayList<*>? = null
+
+        fun bindList(list: ObservableArrayList<*>?) {
+            if (boundList === list) return
+            boundList?.removeOnListChangedCallback(this)
+            boundList = list
+            list?.addOnListChangedCallback(this)
+        }
+
+        override fun onChanged(sender: ObservableArrayList<*>) = submitList(sender)
+
+        override fun onItemRangeChanged(
+            sender: ObservableArrayList<*>,
+            positionStart: Int,
+            itemCount: Int
+        ) = submitList(sender)
+
+        override fun onItemRangeInserted(
+            sender: ObservableArrayList<*>,
+            positionStart: Int,
+            itemCount: Int
+        ) = submitList(sender)
+
+        override fun onItemRangeMoved(
+            sender: ObservableArrayList<*>,
+            fromPosition: Int,
+            toPosition: Int,
+            itemCount: Int
+        ) = submitList(sender)
+
+        override fun onItemRangeRemoved(
+            sender: ObservableArrayList<*>,
+            positionStart: Int,
+            itemCount: Int
+        ) = submitList(sender)
+
+        private fun submitList(sender: ObservableArrayList<*>) {
+            (parent.adapter as? Adapter<Any?, *>)?.submitList(sender)
+        }
     }
 
     private class Paginator(private val parent: EnhancedRecyclerView) {
