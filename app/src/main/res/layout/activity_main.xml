@@ -42,8 +42,8 @@
         </LinearLayout>
 
         <ru.utkonos.enhanced_recycler_view.EnhancedRecyclerView
-            getItemLayout="@{() -> @layout/item_dish}"
             list="@{activity.dishes}"
+            getItemLayout="@{() -> @layout/item_dish}"
             setItemExtras='@{(extras) -> extras.put("activity", activity)}'
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

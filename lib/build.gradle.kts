@@ -27,6 +27,10 @@ android {
         dataBinding = true
     }
 
+    dataBinding {
+        addKtx = true
+    }
+
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
