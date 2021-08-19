@@ -1,4 +1,4 @@
-package ru.utkonos.enhanced_recycler_vew
+package ru.utkonos.enhanced_recycler_view
 
 interface Identifiable {
     val id: Any

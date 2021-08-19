@@ -1,4 +1,4 @@
-package ru.utkonos.enhanced_recycler_vew
+package ru.utkonos.enhanced_recycler_view
 
 import android.graphics.Rect
 import android.view.View

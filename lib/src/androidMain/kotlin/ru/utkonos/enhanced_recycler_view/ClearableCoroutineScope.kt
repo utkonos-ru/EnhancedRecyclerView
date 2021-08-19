@@ -1,4 +1,4 @@
-package ru.utkonos.enhanced_recycler_vew
+package ru.utkonos.enhanced_recycler_view
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

@@ -1,4 +1,4 @@
-package ru.utkonos.enhanced_recycler_vew
+package ru.utkonos.enhanced_recycler_view
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -428,7 +428,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
     }
 
     private class DataBindingAdapter(var getItemLayout: GetItemLayout) :
-        EnhancedRecyclerView.Adapter<Any?, ViewHolder>() {
+        Adapter<Any?, ViewHolder>() {
 
         init {
             registerAdapterDataObserver(

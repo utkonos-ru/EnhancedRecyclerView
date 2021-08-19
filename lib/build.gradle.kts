@@ -1,8 +1,8 @@
 plugins {
+    kotlin("multiplatform")
     id("com.android.library")
-    id("kotlin-android")
-    id("kotlin-kapt")
     id("kotlin-parcelize")
+    id("kotlin-kapt")
 
     `maven-publish`
 }
@@ -10,6 +10,8 @@ plugins {
 android {
     compileSdk = currentSdk
     buildToolsVersion = buildTools
+
+    sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
 
     defaultConfig {
         minSdk = minimumSdk
@@ -37,22 +39,39 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-    }
 }
 
-dependencies {
-    implementation(kotlin("stdlib", kotlin_version))
-    implementation(kotlin("reflect", kotlin_version))
-    implementation("androidx.core:core-ktx:$core_ktx_version")
-    implementation("androidx.appcompat:appcompat:$appcompat_version")
-    implementation("com.google.android.material:material:$material_version")
-    implementation("io.reactivex.rxjava2:rxjava:$rxjava_version")
-    implementation("io.reactivex.rxjava2:rxandroid:$rxandroid_version")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_coroutines_version")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlinx_coroutines_version")
+kotlin {
+    android()
+    ios {
+        binaries {
+            framework {
+                baseName = "enhancedRecyclerViewShared"
+            }
+        }
+    }
+
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation(kotlin("stdlib", kotlin_version))
+            }
+        }
+
+        val androidMain by getting {
+            dependencies {
+                implementation(kotlin("stdlib", kotlin_version))
+                implementation(kotlin("reflect", kotlin_version))
+                implementation("androidx.core:core-ktx:$core_ktx_version")
+                implementation("androidx.appcompat:appcompat:$appcompat_version")
+                implementation("com.google.android.material:material:$material_version")
+                implementation("io.reactivex.rxjava2:rxjava:$rxjava_version")
+                implementation("io.reactivex.rxjava2:rxandroid:$rxandroid_version")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_coroutines_version")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlinx_coroutines_version")
+            }
+        }
+    }
 }
 
 afterEvaluate {

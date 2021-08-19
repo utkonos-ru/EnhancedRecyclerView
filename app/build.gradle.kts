@@ -9,7 +9,7 @@ android {
     buildToolsVersion = buildTools
 
     defaultConfig {
-        applicationId = "ru.utkonos.enhanced_recycler_view"
+        applicationId = "ru.utkonos.ru.utkonos.enhanced_recycler_view"
         minSdk = minimumSdk
         targetSdk = currentSdk
         versionName = "1.0"

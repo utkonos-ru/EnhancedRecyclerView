@@ -18,11 +18,13 @@ class MainActivity : AppCompatActivity() {
         )
     )
 
+    val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(
-            ActivityMainBinding.inflate(layoutInflater).apply { activity = this@MainActivity }.root
-        )
+        setContentView(binding.root)
+
+        binding.activity = this
     }
 
     fun refresh() {

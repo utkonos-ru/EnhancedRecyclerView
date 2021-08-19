@@ -1,6 +1,5 @@
 include(
     ":lib",
-    ":libShared",
     ":app"
 )
 

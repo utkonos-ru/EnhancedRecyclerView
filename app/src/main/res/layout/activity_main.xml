@@ -41,7 +41,7 @@
 
         </LinearLayout>
 
-        <ru.utkonos.enhanced_recycler_vew.EnhancedRecyclerView
+        <ru.utkonos.enhanced_recycler_view.EnhancedRecyclerView
             getItemLayout="@{() -> @layout/item_dish}"
             list="@{activity.dishes}"
             setItemExtras='@{(extras) -> extras.put("activity", activity)}'

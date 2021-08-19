@@ -1,4 +1,4 @@
-package ru.utkonos.enhanced_recycler_vew
+package ru.utkonos.enhanced_recycler_view
 
 interface Diffable : Identifiable {
 
@@ -10,7 +10,7 @@ interface DiffableWithSameClass<T : Diffable> : Diffable {
 
     @Suppress("UNCHECKED_CAST")
     override fun areContentsTheSame(other: Diffable): Boolean {
-        if (this.javaClass != other.javaClass) return false
+        if (this::class != other::class) return false
         return super.areContentsTheSame(minimizeDiff(other as T))
     }
 
