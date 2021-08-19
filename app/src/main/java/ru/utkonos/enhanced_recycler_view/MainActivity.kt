@@ -1,12 +1,9 @@
 package ru.utkonos.enhanced_recycler_view
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.ObservableField
-import kotlinx.android.synthetic.main.activity_main.*
-import ru.utkonos.enhanced_recycler_vew.EnhancedRecyclerView
 import ru.utkonos.enhanced_recycler_view.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
