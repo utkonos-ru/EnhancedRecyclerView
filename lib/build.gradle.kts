@@ -79,17 +79,3 @@ kotlin {
         val iosMain by getting
     }
 }
-
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("maven") {
-                groupId = "com.github.utkonos-online-shop"
-                artifactId = "EnhancedRecyclerView"
-                version = "LOCAL"
-
-                artifact("$buildDir/outputs/aar/${project.name}-release.aar")
-            }
-        }
-    }
-}
