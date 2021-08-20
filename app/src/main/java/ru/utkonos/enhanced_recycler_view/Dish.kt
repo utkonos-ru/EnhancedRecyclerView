@@ -10,7 +10,7 @@ data class Dish(
     val canChoose: Boolean,
     val code: UUID = UUID.randomUUID(),
     val categoryId: Long = Random.nextLong(),
-) : DiffableWithSameClass<Dish> {
+) : DiffableWithSameClass<Dish> by DiffableWithSameClass(id) {
 
     override fun minimizeDiff(other: Dish) = other.copy(code = code, categoryId = categoryId)
 }
