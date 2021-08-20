@@ -1,5 +1,6 @@
-package ru.utkonos.enhanced_recycler_view
+package ru.utkonos.enhanced_recycler_view.app
 
+import ru.utkonos.enhanced_recycler_view.DiffableWithSameClass
 import java.util.*
 import kotlin.random.Random
 

@@ -5,7 +5,7 @@
 
         <variable
             name="activity"
-            type="ru.utkonos.enhanced_recycler_view.MainActivity" />
+            type="ru.utkonos.enhanced_recycler_view.app.MainActivity" />
 
         <variable
             name="itemPosition"
@@ -13,7 +13,7 @@
 
         <variable
             name="itemData"
-            type="ru.utkonos.enhanced_recycler_view.Dish" />
+            type="ru.utkonos.enhanced_recycler_view.app.Dish" />
     </data>
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"

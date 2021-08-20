@@ -5,7 +5,7 @@
 
         <variable
             name="activity"
-            type="ru.utkonos.enhanced_recycler_view.MainActivity" />
+            type="ru.utkonos.enhanced_recycler_view.app.MainActivity" />
 
         <import type="kotlin.collections.MapsKt" />
 
@@ -18,7 +18,7 @@
         android:gravity="center_horizontal"
         android:orientation="vertical"
         android:padding="16dp"
-        tools:context=".MainActivity">
+        tools:context=".app.MainActivity">
 
         <LinearLayout
             android:layout_width="match_parent"

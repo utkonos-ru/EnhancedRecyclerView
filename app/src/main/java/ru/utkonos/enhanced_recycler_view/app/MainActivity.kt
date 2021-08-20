@@ -1,12 +1,11 @@
-package ru.utkonos.enhanced_recycler_view
+package ru.utkonos.enhanced_recycler_view.app
 
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.databinding.DataBindingUtil
 import androidx.databinding.ObservableField
-import ru.utkonos.enhanced_recycler_view.databinding.ActivityMainBinding
+import ru.utkonos.enhanced_recycler_view.app.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
