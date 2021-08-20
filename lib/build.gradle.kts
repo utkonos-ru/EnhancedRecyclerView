@@ -23,6 +23,16 @@ android {
         consumerProguardFile("consumer-rules.pro")
     }
 
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+
     buildFeatures {
         dataBinding = true
     }
@@ -34,7 +44,9 @@ android {
 }
 
 kotlin {
-    android()
+    android {
+        publishLibraryVariants("release", "debug")
+    }
     ios {
         binaries {
             framework {
@@ -63,6 +75,8 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlinx_coroutines_version")
             }
         }
+
+        val iosMain by getting
     }
 }
 
