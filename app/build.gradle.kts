@@ -24,7 +24,7 @@ android {
 
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -43,7 +43,6 @@ android {
 }
 
 dependencies {
-    kapt("com.android.databinding:compiler:$android_build_tools_version")
     implementation(project(":lib"))
     implementation(kotlin("stdlib", kotlin_version))
     implementation("androidx.core:core-ktx:$core_ktx_version")

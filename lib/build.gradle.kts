@@ -27,13 +27,9 @@ android {
         dataBinding = true
     }
 
-    dataBinding {
-        addKtx = true
-    }
-
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
