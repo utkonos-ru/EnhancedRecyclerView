@@ -851,5 +851,21 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         ) {
             view.onItemIsFullyVisible = value
         }
+
+        @JvmStatic
+        @BindingAdapter("fitHorizontal", "fitVertical", requireAll = false)
+        fun setFitWidth(
+            view: EnhancedRecyclerView,
+            horizontal: Boolean = false,
+            vertical: Boolean = false
+        ) {
+            view.layoutManager = if(!horizontal && !vertical) {
+                LinearLayoutManager(view.context)
+            } else {
+                FittableLayoutManager(view.context).also {
+                    it.orientation = if(vertical) VERTICAL else HORIZONTAL
+                }
+            }
+        }
     }
 }
