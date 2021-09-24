@@ -129,6 +129,14 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
             field = value
             updateSnapHelpers()
         }
+
+    var fitMode = false
+        set(value) {
+            if (field == value) return
+            field = value
+            updateLayoutManager()
+        }
+
     private val pagerSnapHelper = PagerSnapHelper()
     private val linearSnapHelper = LinearSnapHelper()
 
@@ -141,6 +149,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
             try {
                 behaviour =
                     Behaviour.values()[getInt(R.styleable.EnhancedRecyclerView_behaviour, 0)]
+                fitMode = getBoolean(R.styleable.EnhancedRecyclerView_behaviour, false)
             } finally {
                 recycle()
             }
@@ -260,6 +269,22 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
                 pagerSnapHelper.attachToRecyclerView(this)
             }
         }
+    }
+
+
+    private fun updateLayoutManager() {
+        layoutManager = if (fitMode)
+            FittableLayoutManager(
+                context,
+                (layoutManager as? LinearLayoutManager)?.orientation ?: return,
+                false
+            )
+        else
+            LinearLayoutManager(
+                context,
+                (layoutManager as? LinearLayoutManager)?.orientation ?: return,
+                false
+            )
     }
 
     open class ItemAnimator : DefaultItemAnimator() {
@@ -853,19 +878,12 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         }
 
         @JvmStatic
-        @BindingAdapter("fitHorizontal", "fitVertical", requireAll = false)
-        fun setFitWidth(
+        @BindingAdapter("fitMode")
+        fun setFitMode(
             view: EnhancedRecyclerView,
-            horizontal: Boolean = false,
-            vertical: Boolean = false
+            value: Boolean,
         ) {
-            view.layoutManager = if(!horizontal && !vertical) {
-                LinearLayoutManager(view.context)
-            } else {
-                FittableLayoutManager(view.context).also {
-                    it.orientation = if(vertical) VERTICAL else HORIZONTAL
-                }
-            }
+            view.fitMode = value
         }
     }
 }

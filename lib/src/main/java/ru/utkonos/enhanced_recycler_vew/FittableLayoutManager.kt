@@ -7,7 +7,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.roundToInt
 
-class FittableLayoutManager(context: Context) : LinearLayoutManager(context) {
+class FittableLayoutManager(
+    context: Context,
+    @RecyclerView.Orientation orientation: Int,
+    reverseLayout: Boolean
+) : LinearLayoutManager(context, orientation, reverseLayout) {
 
     override fun generateDefaultLayoutParams() =
         spanLayoutSize(super.generateDefaultLayoutParams())
