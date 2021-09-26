@@ -143,20 +143,21 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
     private val sharedRecycledViewPool = RecycledViewPool()
 
     init {
+        if (layoutManager == null)
+            layoutManager = LinearLayoutManager(context, attrs, 0, 0)
+        setRecycledViewPool(sharedRecycledViewPool)
+        itemAnimator = ItemAnimator()
         with(
             context.theme.obtainStyledAttributes(attrs, R.styleable.EnhancedRecyclerView, 0, 0)
         ) {
             try {
                 behaviour =
                     Behaviour.values()[getInt(R.styleable.EnhancedRecyclerView_behaviour, 0)]
-                fitMode = getBoolean(R.styleable.EnhancedRecyclerView_behaviour, false)
+                fitMode = getBoolean(R.styleable.EnhancedRecyclerView_fitMode, false)
             } finally {
                 recycle()
             }
         }
-        if (layoutManager == null) layoutManager = LinearLayoutManager(context, attrs, 0, 0)
-        setRecycledViewPool(sharedRecycledViewPool)
-        itemAnimator = ItemAnimator()
     }
 
     final override fun setRecycledViewPool(pool: RecycledViewPool?) =
