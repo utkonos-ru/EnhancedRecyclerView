@@ -129,25 +129,35 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
             field = value
             updateSnapHelpers()
         }
+
+    var fitMode = false
+        set(value) {
+            if (field == value) return
+            field = value
+            updateLayoutManager()
+        }
+
     private val pagerSnapHelper = PagerSnapHelper()
     private val linearSnapHelper = LinearSnapHelper()
 
     private val sharedRecycledViewPool = RecycledViewPool()
 
     init {
+        if (layoutManager == null)
+            layoutManager = LinearLayoutManager(context, attrs, 0, 0)
+        setRecycledViewPool(sharedRecycledViewPool)
+        itemAnimator = ItemAnimator()
         with(
             context.theme.obtainStyledAttributes(attrs, R.styleable.EnhancedRecyclerView, 0, 0)
         ) {
             try {
                 behaviour =
                     Behaviour.values()[getInt(R.styleable.EnhancedRecyclerView_behaviour, 0)]
+                fitMode = getBoolean(R.styleable.EnhancedRecyclerView_fitMode, false)
             } finally {
                 recycle()
             }
         }
-        if (layoutManager == null) layoutManager = LinearLayoutManager(context, attrs, 0, 0)
-        setRecycledViewPool(sharedRecycledViewPool)
-        itemAnimator = ItemAnimator()
     }
 
     final override fun setRecycledViewPool(pool: RecycledViewPool?) =
@@ -260,6 +270,22 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
                 pagerSnapHelper.attachToRecyclerView(this)
             }
         }
+    }
+
+
+    private fun updateLayoutManager() {
+        layoutManager = if (fitMode)
+            FittableLayoutManager(
+                context,
+                (layoutManager as? LinearLayoutManager)?.orientation ?: return,
+                false
+            )
+        else
+            LinearLayoutManager(
+                context,
+                (layoutManager as? LinearLayoutManager)?.orientation ?: return,
+                false
+            )
     }
 
     open class ItemAnimator : DefaultItemAnimator() {
@@ -850,6 +876,15 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
             value: OnViewHolderUpdated
         ) {
             view.onItemIsFullyVisible = value
+        }
+
+        @JvmStatic
+        @BindingAdapter("fitMode")
+        fun setFitMode(
+            view: EnhancedRecyclerView,
+            value: Boolean,
+        ) {
+            view.fitMode = value
         }
     }
 }
