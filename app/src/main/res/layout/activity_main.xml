@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout>
+<layout xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
 
@@ -44,11 +44,11 @@
         <ru.utkonos.enhanced_recycler_vew.EnhancedRecyclerView
             getItemLayout="@{() -> @layout/item_dish}"
             list="@{activity.dishes}"
-            fitVertical="@{true}"
             setItemExtras='@{(extras) -> extras.put("activity", activity)}'
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp" />
+            android:layout_marginTop="16dp"
+            app:fitMode="true" />
 
     </LinearLayout>
 
