@@ -1,6 +1,6 @@
-package ru.utkonos.enhanced_recycler_vew
+@file:Suppress("UNCHECKED_CAST")
 
-import java.util.*
+package ru.utkonos.enhanced_recycler_vew
 
 interface Diffable : Identifiable {
 

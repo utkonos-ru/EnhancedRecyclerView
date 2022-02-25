@@ -15,19 +15,18 @@ import androidx.core.view.children
 import androidx.core.view.isGone
 import androidx.databinding.*
 import androidx.recyclerview.widget.*
-import io.reactivex.Single
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.schedulers.Schedulers
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.android.parcel.Parcelize
 import kotlinx.android.parcel.RawValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.*
-import java.util.concurrent.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashSet
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 open class EnhancedRecyclerView @JvmOverloads constructor(
     context: Context,
