@@ -25,10 +25,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
-import java.util.*
-import java.util.concurrent.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashSet
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -164,6 +160,17 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         }
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        updateDataBindingAdapter()
+    }
+
+    override fun onDetachedFromWindow() {
+        (adapter as? DataBindingAdapter)?.clearAdapter()
+        adapter = null
+        super.onDetachedFromWindow()
+    }
+
     final override fun setRecycledViewPool(pool: RecycledViewPool?) =
         super.setRecycledViewPool(pool)
 
@@ -230,7 +237,10 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
             adapter = null
             return
         }
-        if (adapter == null) adapter = DataBindingAdapter(getItemLayout)
+        if (adapter == null) {
+            adapter = DataBindingAdapter(getItemLayout)
+        }
+
         (adapter as? DataBindingAdapter)?.let {
             if (it.currentList !== list) it.submitList(list)
             if (it.getItemLayout !== getItemLayout) {
@@ -302,7 +312,6 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
     }
 
     abstract class Adapter<T, VH : ViewHolder> : ListAdapter<T, VH>(getAsyncDifferConfig()) {
-
         lateinit var parent: EnhancedRecyclerView
 
         @Volatile
@@ -320,6 +329,11 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
             submitList(actualList)
         }
 
+        fun clearAdapter() {
+            onListChangedCallback.clear()
+            itemViewStates.clear()
+        }
+
         @CallSuper
         override fun submitList(list: List<T>?) {
             submitList(list, null)
@@ -330,7 +344,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
             super.submitList(ArrayList(list)) {
                 actualList = list
                 (list as? ObservableArrayList<*>)?.let(onListChangedCallback::bindList)
-                parent.apply {
+                parent?.apply {
                     lastPage = list.orEmpty()
                     if (isBindingAsNested) {
                         isBindingAsNested = false
@@ -347,7 +361,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         override fun onBindViewHolder(holder: VH, position: Int) {
             holder.unstableItemId = getUnstableItemId(position)
             holder.nestedRecyclerView.get()?.apply {
-                setRecycledViewPool(this@Adapter.parent.sharedRecycledViewPool)
+                setRecycledViewPool(this@Adapter.parent?.sharedRecycledViewPool)
                 beforeBindingAsNested()
                 isBindingAsNested = true
             }
@@ -370,7 +384,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
             if (itemViewStates.size == parent.maxNumberOfItemsToSave) itemViewStates.removeAt(0)
 
-            parent.getRenewedViewHolder(holder)
+            parent?.getRenewedViewHolder(holder)
                 ?.let { it.itemView.post { restoreItemViewState(it) } }
         }
 
@@ -468,7 +482,6 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
     private class DataBindingAdapter(var getItemLayout: GetItemLayout) :
         EnhancedRecyclerView.Adapter<Any?, ViewHolder>() {
-
         init {
             registerAdapterDataObserver(
                 object : AdapterDataObserver() {
@@ -555,7 +568,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         companion object
     }
 
-    private class OnListChangedCallback(private val parent: EnhancedRecyclerView) :
+    private class OnListChangedCallback(private var parent: EnhancedRecyclerView?) :
         ObservableList.OnListChangedCallback<ObservableArrayList<*>>() {
 
         private var boundList: ObservableArrayList<*>? = null
@@ -565,6 +578,12 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
             boundList?.removeOnListChangedCallback(this)
             boundList = list
             list?.addOnListChangedCallback(this)
+        }
+
+        fun clear() {
+            boundList?.removeOnListChangedCallback(this)
+            boundList = null
+            parent = null
         }
 
         override fun onChanged(sender: ObservableArrayList<*>) = submitList(sender)
@@ -595,7 +614,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         ) = submitList(sender)
 
         private fun submitList(sender: ObservableArrayList<*>) {
-            (parent.adapter as? Adapter<Any?, *>)?.submitList(sender)
+            (parent?.adapter as? Adapter<Any?, *>)?.submitList(sender)
         }
     }
 
