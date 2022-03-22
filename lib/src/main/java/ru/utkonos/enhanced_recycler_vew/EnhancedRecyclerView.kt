@@ -24,6 +24,11 @@ import kotlinx.android.parcel.RawValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.lang.ref.WeakReference
+import java.util.*
+import java.util.concurrent.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashSet
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -290,7 +295,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
     open class ItemAnimator : DefaultItemAnimator() {
 
         override fun canReuseUpdatedViewHolder(viewHolder: RecyclerView.ViewHolder) =
-            if ((viewHolder as? ViewHolder)?.nestedRecyclerView != null)
+            if ((viewHolder as? ViewHolder)?.nestedRecyclerView?.get() != null)
                 true
             else
                 super.canReuseUpdatedViewHolder(viewHolder)
@@ -341,7 +346,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         @CallSuper
         override fun onBindViewHolder(holder: VH, position: Int) {
             holder.unstableItemId = getUnstableItemId(position)
-            holder.nestedRecyclerView?.apply {
+            holder.nestedRecyclerView.get()?.apply {
                 setRecycledViewPool(this@Adapter.parent.sharedRecycledViewPool)
                 beforeBindingAsNested()
                 isBindingAsNested = true
@@ -431,10 +436,19 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
         var unstableItemId: Any? = null
 
-        val nestedRecyclerView
-            get() = itemView as? EnhancedRecyclerView
-                ?: (itemView as? ViewGroup)?.getChildAt(0) as? EnhancedRecyclerView
+        val nestedRecyclerView: WeakReference<EnhancedRecyclerView> by lazy {
+            WeakReference(itemView.findNestedRecyclerViewRecursively())
+        }
+
+        private fun View.findNestedRecyclerViewRecursively(): EnhancedRecyclerView? {
+            if (this is EnhancedRecyclerView) return this
+            (this as? ViewGroup)?.children?.forEach { child ->
+                child.findNestedRecyclerViewRecursively()?.let { return it }
+            }
+            return null
+        }
     }
+
 
     private class DiffUtilCallback<T> : DiffUtil.ItemCallback<T>() {
 
