@@ -3,7 +3,7 @@ package ru.utkonos.enhanced_recycler_vew
 import android.graphics.Rect
 import android.view.View
 import androidx.databinding.ViewDataBinding
-import io.reactivex.rxjava3.core.Single
+import io.reactivex.Single
 import java.util.*
 
 val View.isInParentBounds: Boolean
