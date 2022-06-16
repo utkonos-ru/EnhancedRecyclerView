@@ -406,7 +406,7 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
         fun onSaveInstanceState(): Bundle {
             //Сохраняем состояние видимых айтемов в целиковое состояние адаптера и возвращаем его
             parent.children.forEach { (parent.getChildViewHolder(it) as? ViewHolder)?.let(::saveItemViewState) }
-            return bundleOf(KEY_itemViewStates to itemViewStates)
+            return bundleOf(KEY_itemViewStates to ArrayList(itemViewStates))
         }
 
         fun onRestoreInstanceState(state: Parcelable?) {
