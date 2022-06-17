@@ -28,8 +28,6 @@ import java.lang.ref.WeakReference
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
-import java.util.*
-import java.util.concurrent.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 
@@ -168,12 +166,6 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         updateDataBindingAdapter()
-    }
-
-    override fun onDetachedFromWindow() {
-        (adapter as? DataBindingAdapter)?.clearAdapter()
-        adapter = null
-        super.onDetachedFromWindow()
     }
 
     final override fun setRecycledViewPool(pool: RecycledViewPool?) =
@@ -332,11 +324,6 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
 
         fun resubmitList() {
             submitList(actualList)
-        }
-
-        fun clearAdapter() {
-            onListChangedCallback.clear()
-            itemViewStates.clear()
         }
 
         @CallSuper
@@ -583,12 +570,6 @@ open class EnhancedRecyclerView @JvmOverloads constructor(
             boundList?.removeOnListChangedCallback(this)
             boundList = list
             list?.addOnListChangedCallback(this)
-        }
-
-        fun clear() {
-            boundList?.removeOnListChangedCallback(this)
-            boundList = null
-            parent = null
         }
 
         override fun onChanged(sender: ObservableArrayList<*>) = submitList(sender)
